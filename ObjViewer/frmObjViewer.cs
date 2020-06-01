@@ -30,19 +30,15 @@ namespace ObjViewer
             _IsGLControlLoaded = false;
             _TextureDataType = eTextureDataType.BMP;
 
+            // Set current directory for open file dialog
             _CurrentDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
 
             PrepareUI();
             PrepareThreads();
             Rec2Form();
 
-            if (chkAutoRotate.Checked)
-            {
-                _AutoRotate.Start();
-            }
-
-            this.FormClosing += MainForm_FormClosing;
-
+            // Subscribe to events
+            this.FormClosing += MainForm_FormClosing; // Subscribe just once
             SubscribeToEvents();
         }
 
@@ -75,6 +71,7 @@ namespace ObjViewer
         private TextureData _SelectedTextureData;
         private int _TextID;
         private eTextureDataType _TextureDataType;
+
         private string _CurrentDirectory;
 
         #endregion
@@ -132,17 +129,15 @@ namespace ObjViewer
 
                 if (_SelectedObjFile.FaceList.First().VertexIndexList.Count() == 3)
                 {
-                    GL.Begin(BeginMode.Triangles);
-
+                    GL.Begin(PrimitiveType.Triangles);
                 }
                 else if (_SelectedObjFile.FaceList.First().VertexIndexList.Count() == 4)
                 {
-                    GL.Begin(BeginMode.Quads);
-
+                    GL.Begin(PrimitiveType.Quads);
                 }
                 else
                 {
-                    GL.Begin(BeginMode.Points);
+                    GL.Begin(PrimitiveType.Points);
                 }
 
 
@@ -168,17 +163,15 @@ namespace ObjViewer
             {
                 if (_SelectedObjFile.FaceList.First().VertexIndexList.Count() == 3)
                 {
-                    GL.Begin(BeginMode.Triangles);
-
+                    GL.Begin(PrimitiveType.Triangles);
                 }
                 else if (_SelectedObjFile.FaceList.First().VertexIndexList.Count() == 4)
                 {
-                    GL.Begin(BeginMode.Quads);
-
+                    GL.Begin(PrimitiveType.Quads);
                 }
                 else
                 {
-                    GL.Begin(BeginMode.Points);
+                    GL.Begin(PrimitiveType.Points);
                 }
 
                 for (int i = 0; i < _SelectedObjFile.FaceList.Count; i++)
@@ -223,8 +216,8 @@ namespace ObjViewer
                 OpenTK.Graphics.OpenGL.PixelFormat.Rgba,
                 PixelType.Float,
                 _SelectedTextureData.Data);
+
             return texture;
-            // data not needed from here on, OpenGL has the data
         }
 
         private int InitTexturesWithBitmapData()
@@ -274,6 +267,11 @@ namespace ObjViewer
         private void PrepareThreads()
         {
             PrepareAutoRotateThread();
+
+            if (chkAutoRotate.Checked)
+            {
+                _AutoRotate.Start();
+            }
         }
 
         private void PrepareAutoRotateThread()
@@ -388,7 +386,6 @@ namespace ObjViewer
             cmbTextureMethod.SelectedIndexChanged += CmbTextureMethod_SelectedIndexChanged;
         }
 
-
         private void UnsubscribeFromEvents()
         {
             glControlMain.Load -= GlControlMain_Load;
@@ -468,7 +465,6 @@ namespace ObjViewer
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             _AutoRotate.Abort();
-
         }
 
         private void ChkAutoRotate_CheckedChanged(object sender, EventArgs e)
@@ -476,7 +472,6 @@ namespace ObjViewer
             nUDXRotation.Enabled = !chkAutoRotate.Checked;
             nUDYRotation.Enabled = !chkAutoRotate.Checked;
             nUDZRotation.Enabled = !chkAutoRotate.Checked;
-
 
             if (chkAutoRotate.Checked)
             {
@@ -494,10 +489,14 @@ namespace ObjViewer
         private void BtnResetView_Click(object sender, EventArgs e)
         {
             UnsubscribeFromEvents();
+
             _AutoRotate.Abort();
+
             SetDefaultViewParameters();
             Rec2Form();
+
             glControlMain.Invalidate();
+
             SubscribeToEvents();
         }
 
@@ -516,6 +515,7 @@ namespace ObjViewer
             _DirXRotation = Convert.ToDouble(nUDXRotation.Value);
             _DirYRotation = Convert.ToDouble(nUDYRotation.Value);
             _DirZRotation = Convert.ToDouble(nUDZRotation.Value);
+
             glControlMain.Invalidate();
         }
 
@@ -561,10 +561,7 @@ namespace ObjViewer
         private void GlControlMain_MouseDown(object sender, MouseEventArgs e)
         {
             _InitialPoint = e.Location;
-            //if (!chkAutoRotate.Checked)
-            //{
             _IsGLControlClicked = true;
-            //}
         }
 
         private void GlControlMain_MouseUp(object sender, MouseEventArgs e)
@@ -602,6 +599,7 @@ namespace ObjViewer
             {
                 _LookAtDist = 0;
             }
+
             glControlMain.Invalidate();
         }
 

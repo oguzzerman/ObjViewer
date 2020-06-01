@@ -30,6 +30,7 @@ namespace GLibrary
         {
 
         }
+
         public TextureData(string fileName, eTextureDataType TextureDataType)
         {
             if (TextureDataType == eTextureDataType.Float)
@@ -55,7 +56,7 @@ namespace GLibrary
 
         #endregion
 
-        #region Private Properties
+        #region Public Properties
 
         public float[] Data { get => _Data; set => _Data = value; }
         public Bitmap Bmp{ get => _Bmp; set => _Bmp = value; }
