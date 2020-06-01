@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29509.3
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ObjViewer", "ObjViewer.csproj", "{DEDD7CE8-1D3B-4D2C-A2B1-3A28BAFCF262}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GLibrary", "..\GLibrary\GLibrary.csproj", "{AA8CF1B4-FB19-4E59-8586-E4D65CD5BD18}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DEDD7CE8-1D3B-4D2C-A2B1-3A28BAFCF262}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DEDD7CE8-1D3B-4D2C-A2B1-3A28BAFCF262}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DEDD7CE8-1D3B-4D2C-A2B1-3A28BAFCF262}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DEDD7CE8-1D3B-4D2C-A2B1-3A28BAFCF262}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA8CF1B4-FB19-4E59-8586-E4D65CD5BD18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA8CF1B4-FB19-4E59-8586-E4D65CD5BD18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA8CF1B4-FB19-4E59-8586-E4D65CD5BD18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA8CF1B4-FB19-4E59-8586-E4D65CD5BD18}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E3C52346-1E28-41BC-A28D-98E3B2306374}
+	EndGlobalSection
+EndGlobal
