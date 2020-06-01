@@ -28,6 +28,9 @@ namespace ObjViewer
 
             // Define Open GLParameters
             _IsGLControlLoaded = false;
+            _TextureDataType = eTextureDataType.BMP;
+
+            _CurrentDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
 
             PrepareUI();
             PrepareThreads();
@@ -42,7 +45,6 @@ namespace ObjViewer
 
             SubscribeToEvents();
         }
-
 
         #endregion
 
@@ -59,8 +61,10 @@ namespace ObjViewer
         private Thread _AutoRotate;
 
         // View Related Fields
-        private double _VerticalRotation;
-        private double _HorizontalRotation;
+        private double _DirXRotation;
+        private double _DirYRotation;
+        private double _DirZRotation;
+
         private double _LookAtDist;
         private float _AverageX;
         private float _AverageY;
@@ -69,8 +73,10 @@ namespace ObjViewer
         // OBJ Related Fields
         private Obj _SelectedObjFile;
         private TextureData _SelectedTextureData;
-
         private int _TextID;
+        private eTextureDataType _TextureDataType;
+        private string _CurrentDirectory;
+
         #endregion
 
         #region Public Methods
@@ -78,8 +84,6 @@ namespace ObjViewer
         #endregion
 
         #region Private Methods
-
-        #region GL Related
 
         private void DrawSelectedObjFile()
         {
@@ -103,23 +107,44 @@ namespace ObjViewer
             GL.DepthFunc(DepthFunction.Less); // Enable Correct Z Drawings
 
             // Rotating
-            GL.Rotate(_VerticalRotation, 0, 0, 1);
-            GL.Rotate(_HorizontalRotation, 0, 1, 0);
+            GL.Rotate(_DirXRotation, 0, 0, 1);
+            GL.Rotate(_DirYRotation, 0, 1, 0);
+            GL.Rotate(_DirZRotation, 1, 0, 0);
 
             GL.Translate(-_AverageX, -_AverageY, -_AverageZ);
-
-            // Texture Info
-            GL.Enable(EnableCap.Texture2D);
-
+ 
             if (_SelectedTextureData != null)
             {
+                // Texture Info
+                GL.Enable(EnableCap.Texture2D);
 
                 GL.DeleteTexture(_TextID);
 
-                _TextID = InitTextures();
-                //BindTexture(_TextID);
+                if (_TextureDataType == eTextureDataType.Float)
+                {
+                    _TextID = InitTextures();
+                }
+                else if (_TextureDataType == eTextureDataType.BMP)
+                {
+                    _TextID = InitTexturesWithBitmapData();
+                }
 
-                GL.Begin(BeginMode.Triangles);
+
+                if (_SelectedObjFile.FaceList.First().VertexIndexList.Count() == 3)
+                {
+                    GL.Begin(BeginMode.Triangles);
+
+                }
+                else if (_SelectedObjFile.FaceList.First().VertexIndexList.Count() == 4)
+                {
+                    GL.Begin(BeginMode.Quads);
+
+                }
+                else
+                {
+                    GL.Begin(BeginMode.Points);
+                }
+
 
                 GL.Color3(Color.White);
 
@@ -141,7 +166,20 @@ namespace ObjViewer
             }
             else if (_SelectedObjFile != null)
             {
-                GL.Begin(BeginMode.Triangles);
+                if (_SelectedObjFile.FaceList.First().VertexIndexList.Count() == 3)
+                {
+                    GL.Begin(BeginMode.Triangles);
+
+                }
+                else if (_SelectedObjFile.FaceList.First().VertexIndexList.Count() == 4)
+                {
+                    GL.Begin(BeginMode.Quads);
+
+                }
+                else
+                {
+                    GL.Begin(BeginMode.Points);
+                }
 
                 for (int i = 0; i < _SelectedObjFile.FaceList.Count; i++)
                 {
@@ -189,6 +227,31 @@ namespace ObjViewer
             // data not needed from here on, OpenGL has the data
         }
 
+        private int InitTexturesWithBitmapData()
+        {
+            int texture;
+
+            GL.Hint(HintTarget.PerspectiveCorrectionHint, HintMode.Nicest);
+
+            GL.GenTextures(1, out texture);
+            GL.BindTexture(TextureTarget.Texture2D, texture);
+
+            BitmapData data = _SelectedTextureData.Bmp.LockBits(new System.Drawing.Rectangle(0, 0, _SelectedTextureData.Bmp.Width, _SelectedTextureData.Bmp.Height),
+                ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, data.Width, data.Height, 0,
+                OpenTK.Graphics.OpenGL.PixelFormat.Bgra, PixelType.UnsignedByte, data.Scan0);
+            _SelectedTextureData.Bmp.UnlockBits(data);
+
+
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
+
+            return texture;
+        }
+
         private void SetDefaultViewParameters()
         {
             if (_SelectedObjFile != null)
@@ -196,8 +259,9 @@ namespace ObjViewer
                 List<double> maxDistList = new List<double>() { _SelectedObjFile.Size.XSize, _SelectedObjFile.Size.YSize, _SelectedObjFile.Size.ZSize };
                 _LookAtDist = maxDistList.Max() * 1.1;
                 //_LookAtDist = 100;
-                _VerticalRotation = 0;
-                _HorizontalRotation = 0;
+                _DirXRotation = 0;
+                _DirYRotation = 0;
+                _DirZRotation = 0;
 
                 _AverageX = (float)_SelectedObjFile.VertexList.Average((x) => x.X);
                 _AverageY = (float)_SelectedObjFile.VertexList.Average((x) => x.Y);
@@ -206,8 +270,6 @@ namespace ObjViewer
                 GL.Translate(-_AverageX, -_AverageY, -_AverageZ);
             }
         }
-
-        #endregion
 
         private void PrepareThreads()
         {
@@ -238,26 +300,29 @@ namespace ObjViewer
                             AutoRotateSpeed = 2;
                         }
 
-                        _HorizontalRotation += AutoRotateSpeed;
+                        _DirYRotation += AutoRotateSpeed;
 
-                        if (_HorizontalRotation >= 360)
+                        if (_DirYRotation >= 360)
                         {
-                            _HorizontalRotation = _HorizontalRotation - 360;
+                            _DirYRotation = _DirYRotation - 360;
                         }
 
-                        this.nUDHorizontal.Invoke((MethodInvoker)delegate
-                        {
+
+                        this.nUDXRotation.Invoke((MethodInvoker)delegate {
                             // Running on the UI thread
-                            nUDHorizontal.Value = Convert.ToDecimal(_HorizontalRotation);
+                            nUDXRotation.Value = Convert.ToDecimal(_DirXRotation);
+                        });
+
+                        this.nUDYRotation.Invoke((MethodInvoker)delegate {
+                            // Running on the UI thread
+                            nUDYRotation.Value = Convert.ToDecimal(_DirYRotation);
                         });
 
 
-                        this.nUDVertical.Invoke((MethodInvoker)delegate
-                        {
+                        this.nUDZRotation.Invoke((MethodInvoker)delegate {
                             // Running on the UI thread
-                            nUDVertical.Value = Convert.ToDecimal(_VerticalRotation);
+                            nUDZRotation.Value = Convert.ToDecimal(_DirZRotation);
                         });
-
 
                         glControlMain.Invalidate();
                     }
@@ -267,9 +332,10 @@ namespace ObjViewer
 
         private void Rec2Form()
         {
-            nUDHorizontal.Value = (decimal)_HorizontalRotation;
-            nUDVertical.Value = (decimal)_VerticalRotation;
-
+            nUDXRotation.Value = (decimal)_DirXRotation;
+            nUDYRotation.Value = (decimal)_DirYRotation;
+            nUDZRotation.Value = (decimal)_DirZRotation;
+            cmbTextureMethod.SelectedIndex = (int)_TextureDataType;
         }
 
         private void Form2Rec()
@@ -279,10 +345,15 @@ namespace ObjViewer
 
         private void PrepareUI()
         {
+            cmbTextureMethod.Items.Clear();
+            cmbTextureMethod.Items.Add("Bmp");
+            cmbTextureMethod.Items.Add("Float");
+            
             // Set Defaults
             chkAutoRotate.Checked = false;
-            nUDHorizontal.Enabled = true;
-            nUDVertical.Enabled = true;
+            nUDXRotation.Enabled = true;
+            nUDYRotation.Enabled = true;
+            nUDZRotation.Enabled = true;
 
             chkInvertMouseWheel.Checked = false;
             rbMediumSensitivityWheel.Checked = true;
@@ -290,19 +361,22 @@ namespace ObjViewer
             rbARMediumSpeed.Checked = true;
 
             // Set Max and Min Values of the NumericalUpDown
-            nUDHorizontal.Minimum = -decimal.MaxValue;
-            nUDVertical.Minimum = -decimal.MaxValue;
+            nUDXRotation.Minimum = -decimal.MaxValue;
+            nUDYRotation.Minimum = -decimal.MaxValue;
+            nUDZRotation.Minimum = -decimal.MaxValue;
 
-            nUDHorizontal.Maximum = decimal.MaxValue;
-            nUDVertical.Maximum = decimal.MaxValue;
+            nUDXRotation.Maximum = decimal.MaxValue;
+            nUDYRotation.Maximum = decimal.MaxValue;
+            nUDZRotation.Maximum = decimal.MaxValue;
         }
 
         private void SubscribeToEvents()
         {
             glControlMain.Load += GlControlMain_Load;
             glControlMain.Paint += GlControlMain_Paint;
-            nUDHorizontal.ValueChanged += NUD_ValueChanged;
-            nUDVertical.ValueChanged += NUD_ValueChanged;
+            nUDXRotation.ValueChanged += NUD_ValueChanged;
+            nUDYRotation.ValueChanged += NUD_ValueChanged;
+            nUDZRotation.ValueChanged += NUD_ValueChanged;
             glControlMain.MouseDown += GlControlMain_MouseDown;
             glControlMain.MouseUp += GlControlMain_MouseUp;
             glControlMain.MouseMove += GlControlMain_MouseMove;
@@ -311,16 +385,17 @@ namespace ObjViewer
             chkAutoRotate.CheckedChanged += ChkAutoRotate_CheckedChanged;
             btnLoadObj.Click += BtnLoadObj_Click;
             btnLoadTexture.Click += BtnLoadTexture_Click;
-            btnTest.Click += BtnTest_Click;
-            btnTestDwarf.Click += BtnTestDwarf_Click;
+            cmbTextureMethod.SelectedIndexChanged += CmbTextureMethod_SelectedIndexChanged;
         }
+
 
         private void UnsubscribeFromEvents()
         {
             glControlMain.Load -= GlControlMain_Load;
             glControlMain.Paint -= GlControlMain_Paint;
-            nUDHorizontal.ValueChanged -= NUD_ValueChanged;
-            nUDVertical.ValueChanged -= NUD_ValueChanged;
+            nUDXRotation.ValueChanged -= NUD_ValueChanged;
+            nUDYRotation.ValueChanged -= NUD_ValueChanged;
+            nUDZRotation.ValueChanged -= NUD_ValueChanged;
             glControlMain.MouseDown -= GlControlMain_MouseDown;
             glControlMain.MouseUp -= GlControlMain_MouseUp;
             glControlMain.MouseMove -= GlControlMain_MouseMove;
@@ -329,43 +404,16 @@ namespace ObjViewer
             chkAutoRotate.CheckedChanged -= ChkAutoRotate_CheckedChanged;
             btnLoadObj.Click -= BtnLoadObj_Click;
             btnLoadTexture.Click -= BtnLoadTexture_Click;
-            btnTest.Click -= BtnTest_Click;
-            btnTestDwarf.Click -= BtnTestDwarf_Click;
+            cmbTextureMethod.SelectedIndexChanged -= CmbTextureMethod_SelectedIndexChanged;
         }
 
         #endregion
 
         #region Events
 
-        private void BtnTest_Click(object sender, EventArgs e)
+        private void CmbTextureMethod_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // Test
-            _SelectedTextureData = new TextureData("D:\\Develop\\Source\\GL\\matis_hd_obj\\Frame_00001_textured.jpg");
-
-            string[] lines = File.ReadAllLines("D:\\Develop\\Source\\GL\\matis_hd_obj\\Frame_00001_textured.obj");
-            _SelectedObjFile = new Obj();
-            _SelectedObjFile.LoadObj(lines);
-
-            SetDefaultViewParameters();
-
-            DrawSelectedObjFile();
-
-            glControlMain.Invalidate();
-        }
-
-        private void BtnTestDwarf_Click(object sender, EventArgs e)
-        {
-            // Test
-            _SelectedTextureData = new TextureData("D:\\Develop\\Source\\GL\\ObjFiles\\dwarf\\dwarf_2.5M_tex-small.png");
-            string[] lines = File.ReadAllLines("D:\\Develop\\Source\\GL\\ObjFiles\\dwarf\\dwarf_2.5M_tex-small.obj");
-            _SelectedObjFile = new Obj();
-            _SelectedObjFile.LoadObj(lines);
-
-            SetDefaultViewParameters();
-
-            DrawSelectedObjFile();
-
-            glControlMain.Invalidate();
+            _TextureDataType = (eTextureDataType)cmbTextureMethod.SelectedIndex;
         }
 
         private void BtnLoadTexture_Click(object sender, EventArgs e)
@@ -373,11 +421,14 @@ namespace ObjViewer
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             ofd.Filter = "BMP|*.bmp|JPG|*.jpg;*.jpeg|PNG|*.png";
+            ofd.InitialDirectory = _CurrentDirectory;
+
             if (ofd.ShowDialog() == DialogResult.OK)
             {
+                _CurrentDirectory = Path.GetDirectoryName(ofd.FileName);
 
                 string path = ofd.FileName;
-                _SelectedTextureData = new TextureData(path);
+                _SelectedTextureData = new TextureData(path, _TextureDataType);
 
                 SetDefaultViewParameters();
 
@@ -392,10 +443,11 @@ namespace ObjViewer
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             ofd.Filter = "obj files (*.obj)|*.obj|All files (*.*)|*.*";
+            ofd.InitialDirectory = _CurrentDirectory;
+
             if (ofd.ShowDialog() == DialogResult.OK)
             {
-                //_ObjFiles.Add(obj1);
-                //_TextureData.Add(LoadImage("D:\\Develop\\Source\\GL\\matis_hd_obj\\Frame_00001_textured.jpg"));
+                _CurrentDirectory = Path.GetDirectoryName(ofd.FileName);
 
                 string path = ofd.FileName;
                 string[] lines = File.ReadAllLines(path);
@@ -421,8 +473,10 @@ namespace ObjViewer
 
         private void ChkAutoRotate_CheckedChanged(object sender, EventArgs e)
         {
-            nUDHorizontal.Enabled = !chkAutoRotate.Checked;
-            nUDVertical.Enabled = !chkAutoRotate.Checked;
+            nUDXRotation.Enabled = !chkAutoRotate.Checked;
+            nUDYRotation.Enabled = !chkAutoRotate.Checked;
+            nUDZRotation.Enabled = !chkAutoRotate.Checked;
+
 
             if (chkAutoRotate.Checked)
             {
@@ -459,8 +513,9 @@ namespace ObjViewer
 
         private void NUD_ValueChanged(object sender, EventArgs e)
         {
-            _VerticalRotation = Convert.ToDouble(nUDVertical.Value);
-            _HorizontalRotation = Convert.ToDouble(nUDHorizontal.Value);
+            _DirXRotation = Convert.ToDouble(nUDXRotation.Value);
+            _DirYRotation = Convert.ToDouble(nUDYRotation.Value);
+            _DirZRotation = Convert.ToDouble(nUDZRotation.Value);
             glControlMain.Invalidate();
         }
 
@@ -494,9 +549,9 @@ namespace ObjViewer
                     sensitivity = 10;
                 }
 
+                _DirXRotation += -dir * Convert.ToDouble(_InitialPoint.Y - newPt.Y) / sensitivity;
+                _DirYRotation += dir * Convert.ToDouble(_InitialPoint.X - newPt.X) / sensitivity;
 
-                _VerticalRotation += -dir * Convert.ToDouble(_InitialPoint.Y - newPt.Y) / sensitivity;
-                _HorizontalRotation += dir * Convert.ToDouble(_InitialPoint.X - newPt.X) / sensitivity;
                 Rec2Form();
                 glControlMain.Invalidate();
                 SubscribeToEvents();
